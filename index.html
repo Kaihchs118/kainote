@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>即時協作 Markdown 頁面</title>
+    <title>KAI STUDIO</title>
     <style>
         /* --- 基本樣式與暗黑主題 --- */
         :root {
@@ -140,14 +140,20 @@
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
         // 2. 🔥🔥🔥 非常重要：請將底下換成你自己的 Firebase 設定 🔥🔥🔥
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT_ID.firebasedatabase.app",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+        // Import the functions you need from the SDKs you need
+    const firebaseConfig = {
+  apiKey: "AIzaSyAKiC62bh50NXLMWwbfNHekmVCBtTtam6Y",
+  authDomain: "blog-63ad2.firebaseapp.com",
+  projectId: "blog-63ad2",
+  storageBucket: "blog-63ad2.firebasestorage.app",
+  messagingSenderId: "265914768921",
+  appId: "1:265914768921:web:e4c752780e604d0be69488",
+  measurementId: "G-7916V6HGTV"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
         };
         // 🔥🔥🔥 上方的 firebaseConfig 務必替換 🔥🔥🔥
 
