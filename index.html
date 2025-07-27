@@ -134,90 +134,76 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <!-- 引入 Firebase SDK 並執行我們的邏輯 -->
-    <script type="module">
-        // 1. 引入 Firebase SDK 的必要函式
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+   <script type="module">
+    // 1. 引入我們需要的 Firebase SDK 函式
+    // 注意：我們是從 gstatic.com 的網址引入，這適合單一 HTML 檔案
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
-        // 2. 🔥🔥🔥 非常重要：請將底下換成你自己的 Firebase 設定 🔥🔥🔥
-        // Import the functions you need from the SDKs you need
+    // 2. 🔥 你的專屬 Firebase 設定 (已填入) 🔥
+    // 這段就是你提供的金鑰，我們不需要 measurementId
     const firebaseConfig = {
-  apiKey: "AIzaSyAKiC62bh50NXLMWwbfNHekmVCBtTtam6Y",
-  authDomain: "blog-63ad2.firebaseapp.com",
-  projectId: "blog-63ad2",
-  storageBucket: "blog-63ad2.firebasestorage.app",
-  messagingSenderId: "265914768921",
-  appId: "1:265914768921:web:e4c752780e604d0be69488",
-  measurementId: "G-7916V6HGTV"
-};
+      apiKey: "AIzaSyAKiC62bh50NXLMWwbfNHekmVCBtTtam6Y",
+      authDomain: "blog-63ad2.firebaseapp.com",
+      projectId: "blog-63ad2",
+      storageBucket: "blog-63ad2.firebasestorage.app", // 應為 .app
+      messagingSenderId: "265914768921",
+      appId: "1:265914768921:web:e4c752780e604d0be69488"
+    };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-        };
-        // 🔥🔥🔥 上方的 firebaseConfig 務必替換 🔥🔥🔥
+    // 3. 初始化 Firebase App 與資料庫
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    
+    // 我們將文件內容儲存在資料庫的 'live-doc/content' 這個路徑下
+    const docRef = ref(database, 'live-doc/content');
 
-        // 3. 初始化 Firebase App 與資料庫
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        
-        // 我們將文件內容儲存在資料庫的 'live-doc/content' 這個路徑下
-        const docRef = ref(database, 'live-doc/content');
+    // 4. 取得頁面上的 HTML 元素
+    const contentDiv = document.getElementById('content');
+    const editorTextarea = document.getElementById('editor');
 
-        // 4. 取得頁面上的 HTML 元素
-        const contentDiv = document.getElementById('content');
-        const editorTextarea = document.getElementById('editor');
+    // 5. 檢查網址參數，判斷是否為 Admin 模式
+    const params = new URLSearchParams(window.location.search);
+    const isAdmin = params.get('admin') === '1';
 
-        // 5. 檢查網址參數，判斷是否為 Admin 模式
-        const params = new URLSearchParams(window.location.search);
-        const isAdmin = params.get('admin') === '1';
+    // 預設的歡迎文字
+    const defaultText = "# 歡迎使用！\n\n這是一個即時協作的 Markdown 頁面。\n\n- 在網址列加上 `?admin=1` 進入編輯模式。\n- 支援標準 Markdown 語法，例如 [這是一個連結](https://www.google.com)。\n- 所有內容都會即時同步給所有訪客。";
+    
+    // 根據是否為 Admin，決定顯示編輯器還是預覽區塊
+    if (isAdmin) {
+        editorTextarea.style.display = 'block';
+    } else {
+        contentDiv.style.display = 'block';
+    }
 
-        // 預設的歡迎文字
-        const defaultText = "# 歡迎使用！\n\n這是一個即時協作的 Markdown 頁面。\n\n- 在網址列加上 `?admin=1` 進入編輯模式。\n- 支援標準 Markdown 語法，例如 [這是一個連結](https://www.google.com)。\n- 所有內容都會即時同步給所有訪客。";
-        
-        // 根據是否為 Admin，決定顯示編輯器還是預覽區塊
-        if (isAdmin) {
-            editorTextarea.style.display = 'block';
-        } else {
-            contentDiv.style.display = 'block';
-        }
-
-        // 為編輯器加上輸入監聽事件，只有 Admin 才需要
-        if (isAdmin) {
-            editorTextarea.addEventListener('input', () => {
-                // 使用 debounce 防止過於頻繁地寫入資料庫
-                // (雖然 Firebase 可以處理，但這是個好習慣)
-                clearTimeout(window.firebaseTimeout);
-                window.firebaseTimeout = setTimeout(() => {
-                    set(docRef, editorTextarea.value);
-                }, 250); // 延遲 250 毫秒寫入
-            });
-        }
-
-        // 6. 監聽資料庫的變化 (對所有使用者都有效)
-        onValue(docRef, (snapshot) => {
-            // 從資料庫快照中取得文字，如果資料庫是空的，就使用預設文字
-            const text = snapshot.val();
-            const currentContent = text === null ? defaultText : text;
-
-            // 移除 Loading 提示
-            if (contentDiv.classList.contains('loading-text')) {
-                contentDiv.classList.remove('loading-text');
-            }
-
-            // 使用 marked.js 將 Markdown 文字轉換成 HTML
-            const renderedHtml = marked.parse(currentContent);
-
-            // 將轉換後的 HTML 更新到公開的預覽區塊
-            contentDiv.innerHTML = renderedHtml;
-
-            // 如果是 Admin，也要同步更新編輯器的內容
-            // (這能確保多個 Admin 同時編輯時，畫面會同步)
-            // 並加上檢查，避免自己更新自己導致游標跳動
-            if (isAdmin && editorTextarea.value !== currentContent) {
-                editorTextarea.value = currentContent;
-            }
+    // 為編輯器加上輸入監聽事件，只有 Admin 才需要
+    if (isAdmin) {
+        let debounceTimeout;
+        editorTextarea.addEventListener('input', () => {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                set(docRef, editorTextarea.value);
+            }, 250); // 延遲 250 毫秒寫入，防止過於頻繁
         });
+    }
+
+    // 6. 監聽資料庫的變化 (對所有使用者都有效)
+    onValue(docRef, (snapshot) => {
+        const text = snapshot.val();
+        // 如果資料庫是空的 (例如第一次)，就用預設文字
+        const currentContent = text === null ? defaultText : text;
+
+        if (contentDiv.classList.contains('loading-text')) {
+            contentDiv.classList.remove('loading-text');
+        }
+
+        const renderedHtml = marked.parse(currentContent);
+        contentDiv.innerHTML = renderedHtml;
+
+        if (isAdmin && editorTextarea.value !== currentContent) {
+            editorTextarea.value = currentContent;
+        }
+    });
 
     </script>
 </body>
